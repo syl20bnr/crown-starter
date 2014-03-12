@@ -106,6 +106,14 @@ Prerequisites list:
              (error "Unsupported repository with url %s" ,url))))
        (load ,jewel-packages-file)
        (put ',symbol :jewel-url ,url)
+       (put ',symbol :jewel-dir ,jewel-dir)
+       (put ',symbol :jewel-init-file
+            ,(expand-file-name "init.el" jewel-dir))
+       (put ',symbol :jewel-functions-file
+            ,(expand-file-name "functions.el" jewel-dir))
+       (put ',symbol :jewel-keybindings-file
+            ,(expand-file-name "keybindings.el" jewel-dir))
+       (put ',symbol :jewel-packages-file ,jewel-packages-file)
        (put ',symbol :jewel-packages packages)
        (add-to-list 'crown-jewels-alist '(,symbol . (:url ,url))))))
 
@@ -117,13 +125,22 @@ Prerequisites list:
             (not-installed (remove-if 'package-installed-p packages)))
 ;       (message "jewel packages: %s" ',packages)
        (if (and not-installed
-              (y-or-n-p (format "There are %d packages to be installed. %s "
-                                (length not-installed) "Install them?" )))
+              (y-or-n-p
+               (format "Crown: jewel %S will install %d packages. %s "
+                       ',symbol (length not-installed) "Proceed?" )))
            (progn
              (package-refresh-contents)
              (dolist (package packages)
                (when (not (package-installed-p package))
-                 (package-install package))))))))
+                 (package-install package))))))
+     (load (get ',symbol :jewel-init-file))
+     (load (get ',symbol :jewel-functions-file))
+     (load (get ',symbol :jewel-keybindings-file))))
+
+(defmacro crown-cur-and-set-jewel (symbol &rest properties)
+  `(progn
+     (crown-cut-jewel ,symbol ,properties)
+     (crown-set-jewel ,symbol)))
 
 (defmacro crown-unset-jewel (symbol)
   ""
@@ -133,8 +150,9 @@ Prerequisites list:
             (installed (remove-if-not 'package-installed-p packages)))
        (message "jewel packages: %s" ',packages)
        (if (and installed
-              (y-or-n-p (format "There are %d installed packages. %s "
-                                (length installed) "Uninstall them?" )))
+              (y-or-n-p
+               (format "Crown: jewel %S will uninstall %d packages. %s "
+                       ',symbol (length installed) "Proceed?" )))
            (progn
              (package-refresh-contents)
              (dolist (package packages)
