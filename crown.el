@@ -159,11 +159,132 @@ Prerequisites list:
                (when (package-installed-p package)
                  (package-delete package))))))))
 
-(defun crown-config-fetch (name))
-(defun crown-config-fetch-all (name))
+(defun crown-show-jewel-list (jewels)
+  "Display JEWELS in a *Jewels* buffer.
+This is similar to `list-jewels', but it does not fetch the
+updated list of jewels, and it only displays jewels with
+names in JEWELS (which should be a list of symbols)."
+  (require 'finder-inf nil t)
+  (let ((buf (get-buffer-create "*Jewels*")))
+    (with-current-buffer buf
+      (jewel-menu-mode)
+      (jewel-menu--generate nil jewels))
+    (switch-to-buffer buf)))
 
-(defun crown-config-read-packages (name)
-)
+(crown-show-jewel-list t)
+
+(define-derived-mode jewel-menu-mode tabulated-list-mode "Jewel Menu"
+  "Major mode for browsing a list of jewel.
+Letters do not insert themselves; instead, they are commands.
+\\<package-menu-mode-map>
+\\{package-menu-mode-map}"
+  (setq tabulated-list-format [("Jewel" 32 jewel-menu--name-predicate)
+			       ("Version" 12 nil)
+			       ("Status"  10 nil)
+			       ("Description" 0 nil)])
+  (setq tabulated-list-padding 2)
+  (setq tabulated-list-sort-key (cons "Jewel" nil))
+  (tabulated-list-init-header))
+
+(defun jewel-menu--name-predicate (A B)
+  (string< (symbol-name (caar A))
+	   (symbol-name (caar B))))
+
+(defun jewel-menu--generate (remember-pos jewels)
+  "Populate the Jewel Menu.
+If REMEMBER-POS is non-nil, keep point on the same entry.
+JEWELS should be t, which means to display all known packages,
+or a list of jewels names (symbols) to display."
+  ;; ;; Construct list of ((JEWELS . VERSION) STATUS DESCRIPTION).
+  ;; (let (info-list name)
+  ;;   ;; Installed packages:
+  ;;   (dolist (elt package-alist)
+  ;;     (setq name (car elt))
+  ;;     (when (or (eq jewels t) (memq name jewels))
+	;; (package--push name (cdr elt)
+	;; 	       (if (stringp (cadr (assq name package-load-list)))
+	;; 		   "held" "installed")
+	;; 	       info-list)))
+
+  ;;   ;; Built-in packages:
+  ;;   (dolist (elt package--builtins)
+  ;;     (setq name (car elt))
+  ;;     (when (and (not (eq name 'emacs)) ; Hide the `emacs' package.
+	;; 	 (or (eq jewels t) (memq name jewels)))
+  ;;   	(package--push name (cdr elt) "built-in" info-list)))
+
+  ;;   ;; Available and disabled packages:
+  ;;   (dolist (elt package-archive-contents)
+  ;;     (setq name (car elt))
+  ;;     (when (or (eq jewels t) (memq name jewels))
+	;; (let ((hold (assq name package-load-list)))
+	;;   (package--push name (cdr elt)
+	;; 		 (cond
+	;; 		  ((and hold (null (cadr hold))) "disabled")
+	;; 		  ((memq name package-menu--new-package-list) "new")
+	;; 		  (t "available"))
+	;; 		 info-list))))
+
+  ;;   ;; Obsolete packages:
+  ;;   (dolist (elt package-obsolete-alist)
+  ;;     (dolist (inner-elt (cdr elt))
+	;; (when (or (eq jewels t) (memq (car elt) jewels))
+	;;   (package--push (car elt) (cdr inner-elt) "obsolete" info-list))))
+
+    ;; Print the result.
+  (setq info-list nil)
+    (push '(crown-themes "1.0" "na" "A big pack of emacs themes") info-list)
+    (setq tabulated-list-entries (mapcar 'jewel-menu--print-info info-list))
+    (tabulated-list-print remember-pos))
+;; )
+
+(defun jewel-menu--print-info (jewel)
+  "Return a jewel entry suitable for `tabulated-list-entries'.
+JEWEL has the form ((PACKAGE . VERSION) STATUS DOC).
+Return (KEY [NAME VERSION STATUS DOC]), where KEY is the
+identifier (NAME . VERSION-LIST)."
+  ;; (let* ((jwl (caar jewel))
+	;;  (version (cdr (car jewel)))
+	;;  (status  (nth 1 jewel))
+	;;  (doc (or (nth 2 jewel) ""))
+	;;  (face (cond
+	;; 	((string= status "built-in")  'font-lock-builtin-face)
+	;; 	((string= status "available") 'default)
+	;; 	((string= status "new") 'bold)
+	;; 	((string= status "held")      'font-lock-constant-face)
+	;; 	((string= status "disabled")  'font-lock-warning-face)
+	;; 	((string= status "installed") 'font-lock-comment-face)
+	;; 	(t 'font-lock-warning-face)))) ; obsolete.
+  ;;   (list (cons jwl version)
+	;;   (vector (list (symbol-name jwl)
+	;; 		'face 'link
+	;; 		'follow-link t
+	;; 		'package-symbol jwl
+	;; 		'action 'package-menu-describe-package)
+	;; 	  (propertize (package-version-join version)
+	;; 		      'font-lock-face face)
+	;; 	  (propertize status 'font-lock-face face)
+	;; 	  (propertize doc 'font-lock-face face)))))
+
+  (let* ((jwl (car jewel))
+         (version (nth 1 jewel))
+         (status  (nth 2 jewel))
+         (doc (or (nth 3 jewel) ""))
+         (face 'default))
+    (list jwl
+          (vector (list (symbol-name jwl)
+                        'face 'link
+                        'follow-link t
+                        'package-symbol jwl
+                        'action 'jewel-menu-describe-jewel)
+                  (propertize version 'font-lock-face face)
+                  (propertize status 'font-lock-face face)
+                  (propertize doc 'font-lock-face face)))))
+
+(defun jewel-menu-describe-jewel (&optional button)
+  "Describe the current jewel.
+If optional arg BUTTON is non-nil, describe its associated jewel."
+  (interactive) nil)
 
 ;; ===========================================================================
 
